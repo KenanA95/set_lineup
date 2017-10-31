@@ -22,10 +22,17 @@ def login(username, password):
     driver.find_element_by_id("login-signin").click()
 
 
-def start_active_players(date):
-    todays_roster = "https://basketball.fantasysports.yahoo.com/nba/71943/2?date={0}".format(date)
-    driver.get(todays_roster)
-    driver.find_element_by_link_text("Start Active Players").click()
+# n => number of days to set your lineup starting from today's date
+def start_active_players(n):
+    now = datetime.datetime.now()
+    today = datetime.date(now.year, now.month, now.day)
+    days = [today + datetime.timedelta(days=i) for i in range(n)]
+
+    for day in days:
+        roster = "https://basketball.fantasysports.yahoo.com/nba/71943/2?date={0}".format(day)
+        driver.get(roster)
+        driver.find_element_by_link_text("Start Active Players").click()
+        time.sleep(1)
 
 
 if __name__ == "__main__":
@@ -39,13 +46,7 @@ if __name__ == "__main__":
 
     login(yahoo['user'], yahoo['password'])
 
-    # Start active players for the entire week
-    now = datetime.datetime.now()
-    today = datetime.date(now.year, now.month, now.day)
-    week = [today + datetime.timedelta(days=i) for i in range(7)]
-
-    for day in week:
-        start_active_players(day)
-        time.sleep(1)
+    #  Start active players for the entire week
+    start_active_players(n=7)
 
     driver.close()
