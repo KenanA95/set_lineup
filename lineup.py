@@ -1,6 +1,7 @@
 from selenium import webdriver
 import json
 import time
+import datetime
 
 # Grab my login info
 with open('credentials.json') as json_data:
@@ -23,9 +24,19 @@ time.sleep(1)
 driver.find_element_by_id("login-passwd").send_keys(yahoo['password'])
 driver.find_element_by_id("login-signin").click()
 
-# Start active players for today's date
-date = time.strftime("%Y-%m-%d")
-todays_roster = "https://basketball.fantasysports.yahoo.com/nba/71943/2?date={0}".format(date)
-driver.get(todays_roster)
-driver.find_element_by_link_text("Start Active Players").click()
+
+def start_active_players(date):
+    todays_roster = "https://basketball.fantasysports.yahoo.com/nba/71943/2?date={0}".format(date)
+    driver.get(todays_roster)
+    driver.find_element_by_link_text("Start Active Players").click()
+
+
+# Start active players for the entire week
+now = datetime.datetime.now()
+today = datetime.date(now.year, now.month, now.day)
+week = [today + datetime.timedelta(days=i) for i in range(7)]
+
+for day in week:
+    start_active_players(day)
+
 driver.close()
