@@ -25,6 +25,7 @@ driver.find_element_by_id("login-signin").click()
 
 # Start active players for today's date
 date = time.strftime("%Y-%m-%d")
-active_players = "https://basketball.fantasysports.yahoo.com/nba/71943/2?date={0}".format(date)
-driver.get(active_players)
+todays_roster = "https://basketball.fantasysports.yahoo.com/nba/71943/2?date={0}".format(date)
+driver.get(todays_roster)
+driver.find_element_by_link_text("Start Active Players").click()
 driver.close()
