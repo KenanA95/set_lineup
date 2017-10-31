@@ -1,5 +1,6 @@
 import sys
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 import json
 import time
 import datetime
@@ -57,10 +58,14 @@ def send_email(username, password, subject, recipient, text):
 
 if __name__ == "__main__":
 
-    # Pop open the browser
-    driver = webdriver.Chrome()
+    # Open a headless browser
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    driver = webdriver.Chrome(chrome_options=chrome_options)
+    driver.set_window_size(1920, 1080)
+    driver.maximize_window()
 
-    # Grab my info and login
+    # Grab my info for logins
     with open('credentials.json') as json_data:
         login_info = json.load(json_data)
         yahoo = login_info['yahoo']
