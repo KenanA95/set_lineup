@@ -1,3 +1,4 @@
+import sys
 from selenium import webdriver
 import json
 import time
@@ -39,13 +40,12 @@ def start_active_players(driver, days):
         time.sleep(1)
 
 
-# Send me an email to confirm my lineup has been set
-def send_notification(username, password, recipient, days):
+# Email notification to confirm my lineup has been set
+def send_email(username, password, subject, recipient, text):
 
     msg = MIMEMultipart()
-    msg['Subject'] = "Fantasy Basketball Lineup"
+    msg['Subject'] = subject
     msg['To'] = recipient
-    text = "Your lineup has been set for the next {0} days".format(days)
     msg.attach(MIMEText(text, 'plain'))
 
     server = smtplib.SMTP('smtp.gmail.com', 587)
@@ -66,10 +66,17 @@ if __name__ == "__main__":
         yahoo = login_info['yahoo']
         gmail = login_info['gmail']
 
-    login(driver, yahoo['user'], yahoo['password'])
+    # Handle any unforeseen errors
+    try:
+        login(driver, yahoo['user'], yahoo['password'])
+        start_active_players(driver, days=7)
+    except Exception as e:
+        err_msg = "Exception type: {0} \n" \
+                  "Error message: {1}".format(type(e), e)
+        send_email(gmail['user'], gmail['password'], "Error Setting Lineup", "kenan.r.alkiek@gmail.com", err_msg)
+        driver.close()
+        sys.exit(-1)
 
-    #  Start active players for the entire week
-    start_active_players(driver, days=7)
-
+    text = "Your lineup has been set for the next {0} days".format(7)
+    send_email(gmail['user'], gmail['password'], "Lineup Set", "kenan.r.alkiek@gmail.com", text)
     driver.close()
-    send_notification(gmail['user'], gmail['password'], recipient="kenan.r.alkiek@gmail.com", days=7)
