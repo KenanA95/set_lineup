@@ -12,7 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
-# Login into Yahoo fantasy sports and figure out the league id and team
+# Login into Yahoo fantasy sports and go to my team
 def login(driver, username, password):
     login_url = "https://login.yahoo.com/config/login?.src=fantasy&specId=usernameRegWithName&." \
                 "intl=us&.lang=en-US&.done=https://basketball.fantasysports.yahoo.com/"
@@ -32,25 +32,16 @@ def login(driver, username, password):
     driver.find_element_by_id("login-signin").click()
 
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, "My Team")))
-    driver.find_element_by_link_text("My Team").click()
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, "Start Active Players")))
+    team_url = driver.find_element_by_link_text("My Team").get_attribute('href')
 
-    # Parse the url to find the league and team ids. League ids are always 5 digits
-    start_index = driver.current_url.find("nba/") + 4
-    ids = driver.current_url[start_index:]
-    league_id, team_id = ids[:5], ids[6:]
-
-    return league_id, team_id
+    return team_url
 
 
 # days => number of days to set your lineup starting from today's date
-def start_active_players(driver, days):
+def start_active_players(driver, team_url, days):
 
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, "My Team")))
-    time.sleep(3)
-    # Click 'My Team' button
-    driver.find_element_by_link_text("My Team").click()
-    team_url = driver.current_url + "/team?&date="
+    # Go to my team's roster
+    driver.get(team_url)
 
     # Set the roster for n days
     now = datetime.datetime.now()
@@ -58,12 +49,11 @@ def start_active_players(driver, days):
     dates = [today + datetime.timedelta(days=i) for i in range(days)]
 
     for date in dates:
-
-        roster = team_url + str(date)
+        roster = team_url + "/team?&date={0}".format(date)
         driver.get(roster)
-        time.sleep(10)
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, "Start Active Players")))
         driver.find_element_by_link_text("Start Active Players").click()
+        print("Roster successfully set for: {0}".format(date))
 
 
 # Email notification to confirm my lineup has been set
@@ -98,6 +88,6 @@ if __name__ == "__main__":
         yahoo = login_info['yahoo']
         gmail = login_info['gmail']
 
-    # Handle any unforeseen errors
-    league_id, user_id = login(driver, yahoo['user'], yahoo['password'])
+    team_url = login(driver, yahoo['user'], yahoo['password'])
+    start_active_players(driver, team_url, days=2)
     driver.close()
