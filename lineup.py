@@ -11,12 +11,15 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import tkinter as tk
+from selenium.common.exceptions import TimeoutException
 
 
 class LoginFrame:
     def __init__(self, master, driver):
         self.master = master
         self.driver = driver
+        self.login_url = "https://login.yahoo.com/config/login?.src=fantasy&specId=usernameRegWithName&.intl=" \
+                         "us&.lang=en-US&.done=https://basketball.fantasysports.yahoo.com/"
 
         master.title("Login to Yahoo Fantasy Sports")
 
@@ -26,6 +29,7 @@ class LoginFrame:
         self.username = tk.Entry(master)
         self.password = tk.Entry(master, show="*")
         self.login_btn = tk.Button(master, text='Login', command=self.login)
+        self.login_error = tk.Label(master, text="")
 
         # Setup Layout
         self.username_label.grid(row=0, sticky='E')
@@ -33,19 +37,16 @@ class LoginFrame:
         self.username.grid(row=0, column=1)
         self.password.grid(row=1, column=1)
         self.login_btn.grid(columnspan=2)
+        self.login_error.grid(row=3)
 
-        # Hit login button if user hits enter
+        # Bind enter button to login
         root.bind('<Return>', self.login)
 
     def login(self, event=None):
 
         username = self.username.get()
         password = self.password.get()
-
-        login_url = "https://login.yahoo.com/config/login?.src=fantasy&specId=usernameRegWithName&." \
-                    "intl=us&.lang=en-US&.done=https://basketball.fantasysports.yahoo.com/"
-
-        self.driver.get(login_url)
+        self.driver.get(self.login_url)
 
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, "login-username")))
 
@@ -53,13 +54,24 @@ class LoginFrame:
         self.driver.find_element_by_id("login-username").send_keys(username)
         self.driver.find_element_by_id("login-signin").click()
 
-        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, "login-passwd")))
+        # If the page does not proceed immediately its an invalid username
+        try:
+            WebDriverWait(self.driver, 1).until(EC.presence_of_element_located((By.ID, "login-passwd")))
+        except TimeoutException:
+            self.login_error.config(text="Invalid username",  fg="red")
+            return
 
         # Put my password in and login
         self.driver.find_element_by_id("login-passwd").send_keys(password)
         self.driver.find_element_by_id("login-signin").click()
 
-        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, "My Team")))
+        # If the page does not proceed immediately its an invalid password
+        try:
+            WebDriverWait(self.driver, 1).until(EC.presence_of_element_located((By.LINK_TEXT, "My Team")))
+        except TimeoutException:
+            self.login_error.config(text="Invalid password", fg="red")
+            return
+
         team_url = self.driver.find_element_by_link_text("My Team").get_attribute('href')
 
         return team_url
