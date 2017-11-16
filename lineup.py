@@ -77,39 +77,6 @@ class LoginFrame:
         return team_url
 
 
-# days => number of days to set your lineup starting from today's date
-def start_active_players(driver, team_url, days):
-
-    # Go to my team's roster
-    driver.get(team_url)
-
-    # Set the roster for n days
-    now = datetime.datetime.now()
-    today = datetime.date(now.year, now.month, now.day)
-    dates = [today + datetime.timedelta(days=i) for i in range(days)]
-
-    for date in dates:
-        roster = team_url + "/team?&date={0}".format(date)
-        driver.get(roster)
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, "Start Active Players")))
-        driver.find_element_by_link_text("Start Active Players").click()
-        print("Roster successfully set for: {0}".format(date))
-
-
-# Email notification to confirm my lineup has been set
-def send_email(username, password, subject, recipient, text):
-
-    msg = MIMEMultipart()
-    msg['Subject'] = subject
-    msg['To'] = recipient
-    msg.attach(MIMEText(text, 'plain'))
-
-    server = smtplib.SMTP('smtp.gmail.com', 587)
-    server.starttls()
-    server.login(username, password)
-    server.sendmail(username, recipient, msg.as_string())
-    server.quit()
-
 
 if __name__ == "__main__":
 
