@@ -13,9 +13,12 @@ from selenium.common.exceptions import TimeoutException
 
 __doc__ = """
 TODO:
+    - Check if the 'start players' button was successfully selected for each date
+    - Use explicit waits when loading the roster pages
     - Better login validation
     - Use modern theme/style
-    - Place asserts throughout selenium processes
+    - Place asserts throughout selenium gets
+    - Replace update_idletasks
 """
 
 
@@ -43,15 +46,17 @@ class LoginWindow:
         self.username.grid(row=0, column=1)
         self.password.grid(row=1, column=1)
         self.login_btn.grid(columnspan=2)
+        self.login_info.grid(row=3)
 
         # Bind enter button to login
-        root.bind('<Return>', self.login)
+        master.bind('<Return>', self.login)
 
     def login(self, event=None):
-
+        # Grab the entry fields and let the user know the process has started
         username = self.username.get()
         password = self.password.get()
         self.login_info.config(text="Logging in...")
+        self.login_info.update_idletasks()
 
         # Navigate to the login URL
         self.driver.get(self.login_url)
@@ -63,7 +68,7 @@ class LoginWindow:
 
         # If the page does not proceed immediately its an invalid username
         try:
-            WebDriverWait(self.driver, 1).until(EC.presence_of_element_located((By.ID, "login-passwd")))
+            WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.ID, "login-passwd")))
         except TimeoutException:
             self.login_info.config(text="Invalid username",  fg="red")
             return
@@ -74,7 +79,7 @@ class LoginWindow:
 
         # If the page does not proceed immediately its an invalid password
         try:
-            WebDriverWait(self.driver, 1).until(EC.presence_of_element_located((By.LINK_TEXT, "My Team")))
+            WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.LINK_TEXT, "My Team")))
         except TimeoutException:
             self.login_info.config(text="Invalid password", fg="red")
             return
@@ -88,47 +93,74 @@ class MainWindow:
         self.master = master
         self.driver = driver
         self.team_url = team_url
-        self.master.geometry("300x100")
+        self.master.geometry("500x500")
         self.master.title("Yahoo Fantasy Lineup")
-
         # Navigate to the users team
         self.driver.get(self.team_url)
 
         # Initialize fields
-        self.title = tk.Label(master, text=self.driver.title)
-        self.roster = tk.Label(master, text="Roster will go here")
         self.days_label = tk.Label(master, text="Select Number of Days to Start Players")
         self.days = tk.StringVar(master)
         self.days.set(30)
         self.n_days = tk.OptionMenu(master, self.days, *range(100))
         self.log_label = tk.Label(master, text="Output Log")
-        self.log = tk.Label(master, width=50, height=50, text="")
+        scrollbar = tk.Scrollbar(master, orient=tk.VERTICAL)
+        self.log = tk.Listbox(master, width=50, height=50, yscrollcommand=scrollbar.set)
+        scrollbar.config(command=self.log.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.submit = tk.Button(master, text='Submit', command=self.start_players)
 
         # Setup Layout
+        self.days_label.pack()
+        self.n_days.pack()
+        self.submit.pack()
+        self.log_label.pack()
+        self.log.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
     def start_players(self):
+        self.log_label.configure(text="Output Log - Running")
+        self.log_label.update_idletasks()
 
-        n_days = self.days.get()
+        # Get the number of days the user selected
+        n_days = int(self.days.get())
 
         # Generate string representations of the next n days
         now = datetime.datetime.now()
         today = datetime.date(now.year, now.month, now.day)
         dates = [today + datetime.timedelta(days=i) for i in range(n_days)]
 
+        # Clear the current log
+        self.log.delete(0, tk.END)
+        self.log.update_idletasks()
+
         for date in dates:
             roster = self.team_url + "/team?&date={0}".format(date)
             self.driver.get(roster)
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.LINK_TEXT, "Start Active Players")))
+            # TODO: Use explicit wait
+            time.sleep(2)
+            # TODO: Check if the operation was successful
             self.driver.find_element_by_link_text("Start Active Players").click()
-            print("Roster successfully set for: {0}".format(date))
+            time.sleep(2)
+            self.log.insert(tk.END, "Roster successfully set for: {0}".format(date))
+            self.log.update_idletasks()
 
+        self.log_label.configure(text="Output Log")
 
 if __name__ == "__main__":
 
     chrome_options = Options()
-    # chrome_options.add_argument("--headless")
-    driver = webdriver.Chrome(chrome_options=chrome_options)
+    chrome_options.add_argument("--headless")
+    caps = DesiredCapabilities().CHROME
+    caps['pageLoadStrategy'] = "none"
+    driver = webdriver.Chrome(desired_capabilities=caps, chrome_options=chrome_options)
+    driver.set_window_size(1920, 1080)
+
     root = tk.Tk()
-    gui = MainWindow(root, driver, team_url="https://basketball.fantasysports.yahoo.com/nba/71943/2")
+    login = LoginWindow(root, driver)
     root.mainloop()
+
+    root = tk.Tk()
+    main = MainWindow(root, driver, team_url="https://basketball.fantasysports.yahoo.com/nba/71943/2")
+    root.mainloop()
+
+    driver.close()
