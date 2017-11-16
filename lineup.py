@@ -11,6 +11,14 @@ import tkinter as tk
 from selenium.common.exceptions import TimeoutException
 
 
+__doc__ = """
+TODO:
+    - Better login validation
+    - Use modern theme/style
+    - Place asserts throughout selenium processes
+"""
+
+
 class LoginWindow:
     def __init__(self, master, driver):
         self.master = master
